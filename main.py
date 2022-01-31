@@ -19,7 +19,7 @@ else:
 surfshark_tunnel_path = "C:\\ProgramData\\Surfshark\\WireguardConfigs\\SurfsharkWireGuard.conf"
 
 if not os.path.exists(surfshark_tunnel_path):
-    print_exit("SurfsharkWireGuard.conf doesn't exist. Run Surfshark and connect to a server using the WireGuard protocol.", 1)
+    print_exit("\nSurfsharkWireGuard.conf\n doesn't exist. Run Surfshark and connect to a server using the WireGuard protocol.", 1)
 
 with open(surfshark_tunnel_path, "r") as surfshark_tunnel:
     private_key = None

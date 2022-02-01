@@ -1,6 +1,7 @@
 import os
 import sys
 import requests
+import argparse
 
 
 def print_exit(content, exit_status=0):
@@ -8,6 +9,11 @@ def print_exit(content, exit_status=0):
     input("Press ENTER to exit...")
     sys.exit(exit_status)
 
+
+parser = argparse.ArgumentParser()
+parser.add_argument("--exclude", "-e", nargs="+")
+parser.add_argument("--short", "-s", action='store_true')
+args = parser.parse_args()
 
 if getattr(sys, 'frozen', False):
     script_path = os.path.dirname(sys.executable)
@@ -56,14 +62,21 @@ tunnel_path = f"{script_path}\\{tunnel_directory}"
 if not os.path.exists(tunnel_path):
     os.makedirs(tunnel_path)
 
+excluded_packages = ""
+if args.exclude:
+    excluded_packages = f"""ExcludedApplications = {", ".join(args.exclude)}\n"""
+
 for location in surfshark_locations:
     location_name = location["connectionName"]
+    file_name = location_name
+    if args.short:
+        file_name = location["connectionName"].removesuffix(".prod.surfshark.com")
 
     if not location["pubKey"]:
         print(f"""\"{location_name}\" has no public key""")
         continue
 
-    with open(f"""{tunnel_path}\\{location_name}.conf""", "w") as tunnel:
-        tunnel.write(f"""[Interface]\nPrivateKey = {private_key}\nAddress = 10.14.0.2/16\nDNS = 162.252.172.57, 149.154.159.92\n[Peer]\nPublicKey = {location["pubKey"]}\nAllowedIps = 0.0.0.0/0\nEndpoint = {location_name}:51820\n[Peer]\nPublicKey = o07k/2dsaQkLLSR0dCI/FUd3FLik/F/HBBcOGUkNQGo=\nAllowedIPs = 172.16.0.36/32\nEndpoint = 92.249.38.1:51820\n""")
+    with open(f"""{tunnel_path}\\{file_name}.conf""", "w") as tunnel:
+        tunnel.write(f"""[Interface]\nPrivateKey = {private_key}\nAddress = 10.14.0.2/16\nDNS = 162.252.172.57, 149.154.159.92\n{excluded_packages}[Peer]\nPublicKey = {location["pubKey"]}\nAllowedIps = 0.0.0.0/0\nEndpoint = {location_name}:51820\n[Peer]\nPublicKey = o07k/2dsaQkLLSR0dCI/FUd3FLik/F/HBBcOGUkNQGo=\nAllowedIPs = 172.16.0.36/32\nEndpoint = 92.249.38.1:51820\n""")
 
 print_exit(f"WireGuard tunnel generation complete. Check the \"{tunnel_directory}\" folder.")

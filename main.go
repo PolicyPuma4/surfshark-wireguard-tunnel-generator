@@ -48,6 +48,11 @@ func main() {
 			log.Fatal(err)
 		}
 		defer resp.Body.Close()
+
+		if resp.StatusCode != 200 {
+			log.Fatalf("Status code %d", resp.StatusCode)
+		}
+
 		body, err := io.ReadAll(resp.Body)
 
 		respServers := []Server{}

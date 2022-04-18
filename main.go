@@ -4,12 +4,11 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"log"
+	"io/ioutil"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -19,102 +18,73 @@ type Server struct {
 	PubKey         string
 }
 
+func check(e error) {
+	if e != nil {
+		panic(e)
+	}
+}
+
 func main() {
-	defer fmt.Scanln()
-
-	configPath := "C:\\ProgramData\\Surfshark\\WireguardConfigs\\SurfsharkWireGuard.conf"
-	fmt.Println("Open Surfshark and connect to a server using the WireGuard protocol.")
-	fmt.Print("Press ENTER to continue...")
+	fmt.Println("With Surfshark connect to a server using the WireGuard protocol")
+	fmt.Print("Press ENTER to continue")
 	fmt.Scanln()
-	if _, err := os.Stat(configPath); err != nil {
-		log.Fatal(err)
-	}
 
-	f, err := os.Open(configPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer f.Close()
+	data, err := os.ReadFile("C:\\ProgramData\\Surfshark\\WireguardConfigs\\SurfsharkWireGuard.conf")
+	check(err)
 
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(f)
-	configContents := buf.String()
-
-	endpoints := [...]string{"generic", "double", "static", "obfuscated"}
-	servers := []Server{}
-	for _, endpoint := range endpoints {
-		resp, err := http.Get("https://api.surfshark.com/v4/server/clusters/" + endpoint + "?countryCode=")
-		if err != nil {
-			log.Fatal(err)
+	lines := strings.Split(string(data), "\r\n")
+	for index, line := range lines {
+		if strings.HasPrefix(line, "PublicKey = ") {
+			lines[index] = "PublicKey = %s"
+			continue
 		}
+		if strings.HasPrefix(line, "Endpoint = ") {
+			u, err := url.Parse("//" + strings.TrimPrefix(line, "Endpoint = "))
+			check(err)
+			lines[index] = "Endpoint = %s:" + u.Port()
+			break
+		}
+	}
+
+	template := strings.Join(lines, "\r\n")
+
+	servers := []Server{}
+	for _, endpoint := range [...]string{"generic", "double", "static", "obfuscated"} {
+		resp, err := http.Get("https://api.surfshark.com/v4/server/clusters/" + endpoint + "?countryCode=")
+		check(err)
 		defer resp.Body.Close()
 
-		if resp.StatusCode != 200 {
-			log.Fatalf("Status code %d", resp.StatusCode)
-		}
-
-		body, err := io.ReadAll(resp.Body)
+		body, err := ioutil.ReadAll(resp.Body)
+		check(err)
 
 		respServers := []Server{}
 		err = json.Unmarshal(body, &respServers)
-		if err != nil {
-			log.Fatal(err)
-		}
+		check(err)
 
 		servers = append(servers, respServers...)
 	}
 
-	privateKey := ""
-	for _, line := range strings.Split(configContents, "\r\n") {
-		if strings.HasPrefix(line, "PrivateKey = ") {
-			privateKey = strings.TrimPrefix(line, "PrivateKey = ")
-			break
-		}
-	}
-	if len(privateKey) == 0 {
-		log.Fatal("Unable to find private key.")
-	}
+	path := "surfshark-wireguard-tunnel-generator"
+	err = os.MkdirAll(path, os.ModeDir)
+	check(err)
 
-	outputDir := "Surfshark WireGuard"
-	if _, err := os.Stat(outputDir); err != nil {
-		if os.IsNotExist(err) {
-			err := os.Mkdir(outputDir, os.ModeDir)
-			if err != nil {
-				log.Fatal(err)
-			}
-		} else {
-			log.Fatal(err)
-		}
-	}
-
+	processed := 0
 	for _, server := range servers {
 		if len(server.PubKey) == 0 {
 			continue
 		}
 
-		f, err := os.Create(outputDir + "\\" + server.ConnectionName + ".conf")
-		if err != nil {
-			log.Fatal(err)
-		}
+		f, err := os.Create(path + "\\" + server.ConnectionName + ".conf")
+		check(err)
 		defer f.Close()
 
-		s := strings.ReplaceAll(fmt.Sprintf(`[Interface]
-PrivateKey = %s
-Address = 10.14.0.2/16
-DNS = 162.252.172.57, 149.154.159.92
-[Peer]
-PublicKey = %s
-AllowedIps = 0.0.0.0/0
-Endpoint = %s:51820
-[Peer]
-PublicKey = o07k/2dsaQkLLSR0dCI/FUd3FLik/F/HBBcOGUkNQGo=
-AllowedIPs = 172.16.0.36/32
-Endpoint = 92.249.38.1:51820
-`, privateKey, server.PubKey, server.ConnectionName), "\n", "\r\n")
+		_, err = f.WriteString(fmt.Sprintf(template, server.PubKey, server.ConnectionName))
+		check(err)
 
-		f.WriteString(s)
+		processed++
 	}
 
-	fmt.Println("Complete.")
-	fmt.Print("Press ENTER to exit...")
+	fmt.Println(fmt.Sprintf("Created %d files", processed))
+	fmt.Print("Press ENTER to exit")
+	fmt.Scanln()
 }

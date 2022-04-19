@@ -32,7 +32,7 @@ func main() {
 	data, err := os.ReadFile("C:\\ProgramData\\Surfshark\\WireguardConfigs\\SurfsharkWireGuard.conf")
 	check(err)
 
-	lines := strings.Split(string(data), "\r\n")
+	lines := strings.Split(strings.ReplaceAll(string(data), "%", "%%"), "\r\n")
 	for index, line := range lines {
 		if strings.HasPrefix(line, "PublicKey = ") {
 			lines[index] = "PublicKey = %s"

@@ -31,7 +31,8 @@ func main() {
 			_, err = base64.StdEncoding.DecodeString(input)
 			return
 		},
-		Mask: '*',
+		Mask:        '*',
+		HideEntered: true,
 	}
 
 	privateKey, err := prompt.Run()
@@ -56,6 +57,7 @@ Endpoint = %s:51820
 			dir, _ = os.Getwd()
 			return
 		}(),
+		AllowEdit: true,
 		Validate: func(input string) (err error) {
 			_, err = os.Stat(input)
 			return

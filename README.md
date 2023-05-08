@@ -5,3 +5,5 @@ What does this small app solve? Surfshark doesn't allow you to download all Wire
 
 [Download 🪟 (amd64)](https://github.com/PolicyPuma4/surfshark-wireguard-tunnel-generator/releases/latest/download/swtr_windows_amd64.exe)  
 [Download 🐧 (amd64)](https://github.com/PolicyPuma4/surfshark-wireguard-tunnel-generator/releases/latest/download/swtr_linux_amd64)
+[Download 🍏 (amd64)](https://github.com/PolicyPuma4/surfshark-wireguard-tunnel-generator/releases/latest/download/swtr_darwin_amd64)
+[Download 🍏 (arm64)](https://github.com/PolicyPuma4/surfshark-wireguard-tunnel-generator/releases/latest/download/swtr_darwin_arm64)
